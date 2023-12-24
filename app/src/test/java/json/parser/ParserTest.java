@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.nio.file.Paths;
-import java.text.ParseException;
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -15,7 +14,8 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 class ParserTest {
-    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    final ByteArrayOutputStream baosStdOut = new ByteArrayOutputStream();
+    final ByteArrayOutputStream baosStdErr = new ByteArrayOutputStream();
     final String utf8 = StandardCharsets.UTF_8.name();
 
     @BeforeEach
@@ -24,14 +24,21 @@ class ParserTest {
     }
 
     public void captureStdOut() {
-
         try {
-            PrintStream ps = new PrintStream(baos, true, utf8);
+            PrintStream ps = new PrintStream(baosStdOut, true, utf8);
             System.setOut(ps);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+    }
 
+    public void captureStdErr() {
+        try {
+            PrintStream ps = new PrintStream(baosStdErr, true, utf8);
+            System.setErr(ps);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -39,14 +46,12 @@ class ParserTest {
         captureStdOut();
         try {
             Parser.parse(Paths.get("./src/test/resources/step1/valid.json"));
-
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (RuntimeException e) {
             assertEquals("0", e.getMessage());
             try {
-                String data = baos.toString(utf8);
+                String data = baosStdOut.toString(utf8);
                 JSONObject expected = new JSONObject();
                 assertEquals(expected.toString(), data.trim());
             } catch (UnsupportedEncodingException ex) {
@@ -58,32 +63,34 @@ class ParserTest {
 
     @Test
     public void ParserErrorsOnInvalidObject() {
-        captureStdOut();
+        captureStdErr();
         try {
-            ParseException e = assertThrows(ParseException.class,
-                    () -> Parser.parse(Paths.get("./src/test/resources/step1/invalid.json")));
-            assertEquals("Not enough tokens to process", e.getMessage());
-        } catch (Exception e) {
+            Parser.parse(Paths.get("./src/test/resources/step1/invalid.json"));
+        } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("Failed to parse");
-            System.out.println(e.getMessage());
+        } catch (RuntimeException e) {
+            assertEquals("1", e.getMessage());
+            try {
+                String data = baosStdErr.toString(utf8);
+                assertEquals("Not enough tokens to process", data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
     @Test
-    public void ParserParsesValidObject() {
+    public void ParserParsesValidStringObject() {
         captureStdOut();
         try {
             Parser.parse(Paths.get("./src/test/resources/step2/valid.json"));
-            String data = baos.toString(utf8);
-            assertNotNull(data);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (RuntimeException e) {
             assertEquals("0", e.getMessage());
             try {
-                String data = baos.toString(utf8);
+                String data = baosStdOut.toString(utf8);
                 JSONObject expected = new JSONObject();
                 expected.addItem("key", "value");
                 assertEquals(expected.toString(), data.trim());
@@ -94,23 +101,98 @@ class ParserTest {
     }
 
     @Test
-    public void ParserParsesValidObject2() {
+    public void ParserParsesValidStringObject2() {
         captureStdOut();
         try {
             Parser.parse(Paths.get("./src/test/resources/step2/valid2.json"));
-            String data = baos.toString(utf8);
-            assertNotNull(data);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (RuntimeException e) {
             assertEquals("0", e.getMessage());
             try {
-                String data = baos.toString(utf8);
+                String data = baosStdOut.toString(utf8);
                 JSONObject expected = new JSONObject();
                 expected.addItem("key", "value");
                 expected.addItem("key2", "value");
                 assertEquals(expected.toString(), data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserErrorsOnInvalidStringObject() {
+        captureStdErr();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/step2/invalid.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("1", e.getMessage());
+            try {
+                String data = baosStdErr.toString(utf8);
+                assertEquals("Expected string key, got }", data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserErrorsOnInvalidStringObject2() {
+        captureStdErr();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/step2/invalid2.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("1", e.getMessage());
+            try {
+                String data = baosStdErr.toString(utf8);
+                assertEquals("Unable to tokenize char 'k' at position 22", data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserParsesValidVariedObject() {
+        captureStdOut();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/step3/valid.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baosStdOut.toString(utf8);
+                JSONObject expected = new JSONObject();
+                expected.addItem("key1", true);
+                expected.addItem("key2", false);
+                expected.addItem("key3", null);
+                expected.addItem("key4", "value");
+                expected.addItem("key5", 101);
+                assertEquals(expected.toString(), data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserErrorsOnInvalidVariedObject2() {
+        captureStdErr();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/step3/invalid.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("1", e.getMessage());
+            try {
+                String data = baosStdErr.toString(utf8);
+                assertEquals("Unable to tokenize char 'F' at position 28", data.trim());
             } catch (UnsupportedEncodingException ex) {
                 ex.printStackTrace();
             }

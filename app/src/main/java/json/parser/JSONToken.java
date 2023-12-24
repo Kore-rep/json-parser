@@ -40,7 +40,7 @@ public class JSONToken<T> {
 
     @Override
     public String toString() {
-        return this.value + " of type " + this.type;
+        return this.value.toString();
     }
 }
 
@@ -52,5 +52,7 @@ enum JSONTokenType {
     Seperator,
     String,
     Colon,
-    Value
+    Boolean,
+    Number,
+    Null
 }
