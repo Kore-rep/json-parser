@@ -11,17 +11,9 @@ import java.text.ParseException;
 import java.lang.UnsupportedOperationException;
 
 public class Parser {
-    public String getGreeting() {
-        return "Hello World!";
-    }
-
-    public static void main(String[] args) {
-        Parser.parse(args[0]);
-    }
-
     public static void parse(String object) {
         try {
-            List<JSONToken> tokens = lexicalAnalysis(object.trim());
+            List<JSONToken<?>> tokens = lexicalAnalysis(object.trim());
             JSONObject obj = syntacticAnalysis(tokens);
             System.out.println(obj.toString());
             System.exit(0);
@@ -36,14 +28,13 @@ public class Parser {
         parse(Files.readString(pathToFile));
     }
 
-    // {"name": "Angus"}
-    private static List<JSONToken> lexicalAnalysis(String object) throws ParseException {
-        List<JSONToken> tokens = new ArrayList<>();
+    private static List<JSONToken<?>> lexicalAnalysis(String object) throws ParseException {
+        List<JSONToken<?>> tokens = new ArrayList<>();
         int i = 0;
         while (i < object.length()) {
             char c = object.charAt(i);
             if (Constants.JSON_SYNTAX.contains(c)) {
-                tokens.add(new JSONToken(String.valueOf(c)));
+                tokens.add(new JSONToken<String>(String.valueOf(c)));
                 i++;
                 continue;
             } else if (Constants.JSON_WHITESPACE.contains(c)) {
@@ -53,9 +44,9 @@ public class Parser {
             }
             switch (c) {
                 case '"':
-                    JSONToken str = lexString(object.substring(i, object.length()));
+                    JSONToken<String> str = lexString(object.substring(i, object.length()));
                     tokens.add(str);
-                    i += ((String) str.getValue()).length() + 1;
+                    i += (str.getValue()).length() + 1;
                     break;
                 case 't':
                 case 'T':
@@ -74,25 +65,25 @@ public class Parser {
     }
 
     // Expect first character to be first " of string to be lexed
-    private static JSONToken lexString(String object) throws ParseException {
+    private static JSONToken<String> lexString(String object) throws ParseException {
         StringBuilder sb = new StringBuilder();
         for (int i = 1; i < object.length(); i++) {
             char c = object.charAt(i);
             if (c == '"')
-                return new JSONToken(sb.toString(), JSONTokenType.String);
+                return new JSONToken<String>(sb.toString(), JSONTokenType.String);
             sb.append(c);
         }
         throw new ParseException("Expected end of string quote", 0);
     }
 
-    private static JSONObject syntacticAnalysis(List<JSONToken> tokens) throws ParseException {
+    private static JSONObject syntacticAnalysis(List<JSONToken<?>> tokens) throws ParseException {
         return syntacticAnalysis(tokens, 0);
     }
 
-    private static JSONObject syntacticAnalysis(List<JSONToken> tokens, int startIndex) throws ParseException {
+    private static JSONObject syntacticAnalysis(List<JSONToken<?>> tokens, int startIndex) throws ParseException {
         if (tokens.size() < 1)
             throw new ParseException("Not enough tokens to process", startIndex);
-        JSONToken t = tokens.get(startIndex);
+        JSONToken<?> t = tokens.get(startIndex);
         switch (t.getType()) {
             case LeftBrace:
                 return parseObject(tokens.subList(startIndex, tokens.size()), startIndex + 1);
@@ -104,18 +95,16 @@ public class Parser {
         }
     }
 
-    private static JSONObject parseArray(List<JSONToken> tokens, int startIndex) {
+    private static JSONObject parseArray(List<JSONToken<?>> tokens, int startIndex) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
-    private static JSONObject parseObject(List<JSONToken> tokens, int startIndex) throws ParseException {
+    private static JSONObject parseObject(List<JSONToken<?>> tokens, int startIndex) throws ParseException {
         JSONObject obj = new JSONObject();
-        JSONToken t = tokens.get(startIndex);
+        JSONToken<?> t = tokens.get(startIndex);
         if (t.getType() == JSONTokenType.RightBrace) {
             return obj;
         }
-
-        // Expecting format {"key": value,}
         while (startIndex < tokens.size()) {
             // Expect Key
             t = tokens.get(startIndex);

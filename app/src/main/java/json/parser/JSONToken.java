@@ -1,15 +1,15 @@
 package json.parser;
 
-public class JSONToken {
-    private Object value;
+public class JSONToken<T> {
+    private T value;
     private JSONTokenType type;
 
-    public JSONToken(String value) {
+    public JSONToken(T value) {
         this.value = value;
         inferType();
     }
 
-    public JSONToken(String value, JSONTokenType type) {
+    public JSONToken(T value, JSONTokenType type) {
         this.value = value;
         this.type = type;
     }
@@ -18,7 +18,7 @@ public class JSONToken {
         return this.type;
     }
 
-    public Object getValue() {
+    public T getValue() {
         return this.value;
     }
 
