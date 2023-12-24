@@ -9,4 +9,8 @@ public class JSONObject {
     public String toString() {
         return "JSONObject [objects=" + objects + "]";
     }
+
+    public void addItem(String key, Object value) {
+        objects.put(key, value);
+    }
 }

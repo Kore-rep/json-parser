@@ -3,17 +3,13 @@
  */
 package json.parser;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
-import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.io.IOException;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +17,11 @@ import java.nio.charset.StandardCharsets;
 class ParserTest {
     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
     final String utf8 = StandardCharsets.UTF_8.name();
+
+    @BeforeEach
+    void setUp() {
+        System.setSecurityManager(new NoExitSecurityManager());
+    }
 
     public void captureStdOut() {
 
@@ -34,27 +35,81 @@ class ParserTest {
     }
 
     @Test
-    public void ParserParsesValidObject() {
+    public void ParserParsesValidEmptyObject() {
+        captureStdOut();
         try {
-            captureStdOut();
-
             Parser.parse(Paths.get("./src/test/resources/step1/valid.json"));
-            String data = baos.toString(utf8);
-            var a = 'a';
-            assertNotNull(data);
+
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baos.toString(utf8);
+                assertNotNull(data);
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+
         }
     }
 
     @Test
     public void ParserErrorsOnInvalidObject() {
+        captureStdOut();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step1/invalid.json"));
+            ParseException e = assertThrows(ParseException.class,
+                    () -> Parser.parse(Paths.get("./src/test/resources/step1/invalid.json")));
+            assertEquals("Not enough tokens to process", e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to parse");
+            System.out.println(e.getMessage());
+        }
+    }
+
+    @Test
+    public void ParserParsesValidObject() {
+        captureStdOut();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/step2/valid.json"));
+            String data = baos.toString(utf8);
+            assertNotNull(data);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baos.toString(utf8);
+                assertNotNull(data);
+                JSONObject expected = new JSONObject();
+                expected.addItem("value", "value");
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserParsesValidObject2() {
+        captureStdOut();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/step2/valid2.json"));
+            String data = baos.toString(utf8);
+            assertNotNull(data);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baos.toString(utf8);
+                assertNotNull(data);
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 

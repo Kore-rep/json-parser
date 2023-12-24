@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.io.IOException;
 import java.util.*;
 import java.text.ParseException;
+import java.lang.UnsupportedOperationException;
 
 public class Parser {
     public String getGreeting() {
@@ -15,7 +16,7 @@ public class Parser {
     }
 
     public static void main(String[] args) {
-        System.out.println(new Parser().getGreeting());
+        Parser.parse(args[0]);
     }
 
     public static void parse(String object) {
@@ -23,7 +24,7 @@ public class Parser {
             List<JSONToken> tokens = lexicalAnalysis(object.trim());
             JSONObject obj = syntacticAnalysis(tokens);
             System.out.println(obj.toString());
-            System.exit(1);
+            System.exit(0);
         } catch (ParseException e) {
             System.err.println(e);
             e.printStackTrace();
@@ -35,39 +36,120 @@ public class Parser {
         parse(Files.readString(pathToFile));
     }
 
+    // {"name": "Angus"}
     private static List<JSONToken> lexicalAnalysis(String object) throws ParseException {
         List<JSONToken> tokens = new ArrayList<>();
-        int marker = 0;
-        while (marker < object.length()) {
-            char c = object.charAt(marker);
-            switch (c) {
-                case '{':
-                case '}':
-                case ',':
-                    tokens.add(new JSONToken(String.valueOf(c)));
-                    break;
-                default:
-                    throw new ParseException(String.format("Unexpected Token received: %c", c), marker);
+        int i = 0;
+        while (i < object.length()) {
+            char c = object.charAt(i);
+            if (Constants.JSON_SYNTAX.contains(c)) {
+                tokens.add(new JSONToken(String.valueOf(c)));
+                i++;
+                continue;
+            } else if (Constants.JSON_WHITESPACE.contains(c)) {
+                // Ignore whitespace
+                i++;
+                continue;
             }
-            marker++;
+            switch (c) {
+                case '"':
+                    JSONToken str = lexString(object.substring(i, object.length()));
+                    tokens.add(str);
+                    i += ((String) str.getValue()).length() + 1;
+                    break;
+                case 't':
+                case 'T':
+                    break;
+                // Lex bool and advance 4 spaces
+                case 'f':
+                case 'F':
+                    break;
+                // Lex bool and advance 5 spaces
+                default:
+                    throw new ParseException(String.format("Unexpected Token received: %c", c), i);
+            }
+            i++;
         }
-
         return tokens;
     }
 
-    private static JSONObject syntacticAnalysis(List<JSONToken> tokens) {
-        if (tokens.get(0).getType() == JSONTokenType.LeftBrace) {
-            return parseObject(tokens, 1);
-        } else {
-            return new JSONObject();
+    // Expect first character to be first " of string to be lexed
+    private static JSONToken lexString(String object) throws ParseException {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i < object.length(); i++) {
+            char c = object.charAt(i);
+            if (c == '"')
+                return new JSONToken(sb.toString(), JSONTokenType.String);
+            sb.append(c);
+        }
+        throw new ParseException("Expected end of string quote", 0);
+    }
+
+    private static JSONObject syntacticAnalysis(List<JSONToken> tokens) throws ParseException {
+        return syntacticAnalysis(tokens, 0);
+    }
+
+    private static JSONObject syntacticAnalysis(List<JSONToken> tokens, int startIndex) throws ParseException {
+        if (tokens.size() < 1)
+            throw new ParseException("Not enough tokens to process", startIndex);
+        JSONToken t = tokens.get(startIndex);
+        switch (t.getType()) {
+            case LeftBrace:
+                return parseObject(tokens.subList(startIndex, tokens.size()), startIndex + 1);
+            case LeftBracket:
+                return parseArray(tokens, 1);
+            default:
+                throw new UnsupportedOperationException("Base value");
+
         }
     }
 
-    private static JSONObject parseObject(List<JSONToken> tokens, int startIndex) {
+    private static JSONObject parseArray(List<JSONToken> tokens, int startIndex) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    private static JSONObject parseObject(List<JSONToken> tokens, int startIndex) throws ParseException {
         JSONObject obj = new JSONObject();
-        if (tokens.get(startIndex).getType() == JSONTokenType.RightBrace) {
+        JSONToken t = tokens.get(startIndex);
+        if (t.getType() == JSONTokenType.RightBrace) {
             return obj;
         }
-        return obj;
+
+        // Expecting format {"key": value,}
+        while (startIndex < tokens.size()) {
+            // Expect Key
+            if (t.getType() != JSONTokenType.String) {
+                throw new ParseException(String.format("Expected string key, got %o", t), startIndex);
+            }
+            startIndex++;
+            String jsonKey = (String) t.getValue();
+            Object value = new JSONObject();
+            // Expect Colon
+            if (tokens.get(startIndex).getType() != JSONTokenType.Colon) {
+                throw new ParseException(String.format("Expected Colon after key, got %o", t), startIndex);
+            }
+            startIndex++;
+
+            // Expect value (can be another object)
+            try {
+                value = syntacticAnalysis(tokens, startIndex);
+            } catch (UnsupportedOperationException e) {
+                value = tokens.get(startIndex);
+            }
+            obj.addItem(jsonKey, value);
+            startIndex++;
+            // Expect closing bracket
+            if (tokens.get(startIndex).getType() == JSONTokenType.RightBrace) {
+                return obj;
+            }
+
+            // Otherwise Expect comma
+            if (tokens.get(startIndex).getType() != JSONTokenType.Seperator) {
+                throw new ParseException(String.format("Expected Comma after pair, got %o", t), startIndex);
+            }
+            startIndex++;
+        }
+        throw new ParseException(
+                String.format("Expected end of object bracket, got %o", tokens.get(startIndex).getValue()), startIndex);
     }
 }
