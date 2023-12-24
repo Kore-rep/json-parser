@@ -157,7 +157,6 @@ public class Parser {
             if (t.getType() != JSONTokenType.String) {
                 throw new ParseException(String.format("Expected string key, got %s", t), maxNumTokens - tokens.size());
             }
-            // obj.addToken();
             String jsonKey = (String) t.getValue();
             Object value = new JSONObject();
             t = tokens.poll();
@@ -166,21 +165,16 @@ public class Parser {
                 throw new ParseException(String.format("Expected Colon after key, got %s", t),
                         maxNumTokens - tokens.size());
             }
-            // obj.addToken();
-            t = tokens.poll();
             // Expect value (can be another object)
             try {
                 value = syntacticAnalysis();
-                // tokensToAdd = ((JSONObject) value).getTokens();
-                // obj.addTokens(tokensToAdd);
             } catch (UnsupportedOperationException e) {
+                t = tokens.poll();
                 value = t.getValue();
-                // obj.addToken();
             }
-            obj.addItem(jsonKey, value); // Need to be able to add number of tokens consumed by nested objects.
+            obj.addItem(jsonKey, value);
             t = tokens.poll();
 
-            // obj.addToken();
             // Expect closing bracket
             if (t.getType() == JSONTokenType.RightBrace) {
                 return obj;
