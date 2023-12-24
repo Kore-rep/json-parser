@@ -118,33 +118,36 @@ public class Parser {
         // Expecting format {"key": value,}
         while (startIndex < tokens.size()) {
             // Expect Key
+            t = tokens.get(startIndex);
             if (t.getType() != JSONTokenType.String) {
                 throw new ParseException(String.format("Expected string key, got %o", t), startIndex);
             }
             startIndex++;
             String jsonKey = (String) t.getValue();
             Object value = new JSONObject();
+            t = tokens.get(startIndex);
             // Expect Colon
-            if (tokens.get(startIndex).getType() != JSONTokenType.Colon) {
+            if (t.getType() != JSONTokenType.Colon) {
                 throw new ParseException(String.format("Expected Colon after key, got %o", t), startIndex);
             }
             startIndex++;
-
+            t = tokens.get(startIndex);
             // Expect value (can be another object)
             try {
                 value = syntacticAnalysis(tokens, startIndex);
             } catch (UnsupportedOperationException e) {
-                value = tokens.get(startIndex);
+                value = t.getValue();
             }
             obj.addItem(jsonKey, value);
             startIndex++;
+            t = tokens.get(startIndex);
             // Expect closing bracket
-            if (tokens.get(startIndex).getType() == JSONTokenType.RightBrace) {
+            if (t.getType() == JSONTokenType.RightBrace) {
                 return obj;
             }
 
             // Otherwise Expect comma
-            if (tokens.get(startIndex).getType() != JSONTokenType.Seperator) {
+            if (t.getType() != JSONTokenType.Seperator) {
                 throw new ParseException(String.format("Expected Comma after pair, got %o", t), startIndex);
             }
             startIndex++;

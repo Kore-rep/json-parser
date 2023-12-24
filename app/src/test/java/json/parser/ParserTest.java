@@ -47,7 +47,8 @@ class ParserTest {
             assertEquals("0", e.getMessage());
             try {
                 String data = baos.toString(utf8);
-                assertNotNull(data);
+                JSONObject expected = new JSONObject();
+                assertEquals(expected.toString(), data.trim());
             } catch (UnsupportedEncodingException ex) {
                 ex.printStackTrace();
             }
@@ -83,9 +84,9 @@ class ParserTest {
             assertEquals("0", e.getMessage());
             try {
                 String data = baos.toString(utf8);
-                assertNotNull(data);
                 JSONObject expected = new JSONObject();
-                expected.addItem("value", "value");
+                expected.addItem("key", "value");
+                assertEquals(expected.toString(), data.trim());
             } catch (UnsupportedEncodingException ex) {
                 ex.printStackTrace();
             }
@@ -106,7 +107,10 @@ class ParserTest {
             assertEquals("0", e.getMessage());
             try {
                 String data = baos.toString(utf8);
-                assertNotNull(data);
+                JSONObject expected = new JSONObject();
+                expected.addItem("key", "value");
+                expected.addItem("key2", "value");
+                assertEquals(expected.toString(), data.trim());
             } catch (UnsupportedEncodingException ex) {
                 ex.printStackTrace();
             }
