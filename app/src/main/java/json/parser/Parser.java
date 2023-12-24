@@ -9,10 +9,13 @@ import java.text.ParseException;
 import java.lang.UnsupportedOperationException;
 
 public class Parser {
+    private static LinkedList<JSONToken<?>> tokens = new LinkedList<JSONToken<?>>();
+    private static int maxNumTokens;
+
     public static void parse(String object) {
         try {
-            List<JSONToken<?>> tokens = lexicalAnalysis(object.trim());
-            JSONObject obj = syntacticAnalysis(tokens);
+            lexicalAnalysis(object.trim());
+            JSONObject obj = syntacticAnalysis();
             System.out.println(obj.toString());
             System.exit(0);
         } catch (ParseException e) {
@@ -25,8 +28,7 @@ public class Parser {
         parse(Files.readString(pathToFile));
     }
 
-    private static List<JSONToken<?>> lexicalAnalysis(String object) throws ParseException {
-        List<JSONToken<?>> tokens = new ArrayList<>();
+    private static void lexicalAnalysis(String object) throws ParseException {
         int i = 0;
         while (i < object.length()) {
             String currString = object.substring(i, object.length());
@@ -70,7 +72,7 @@ public class Parser {
             }
             throw new ParseException(String.format("Unable to tokenize char '%s' at position %d", c, i), i);
         }
-        return tokens;
+        maxNumTokens = tokens.size();
     }
 
     // Expect first character to be first " of string to be lexed
@@ -122,60 +124,63 @@ public class Parser {
         return false;
     }
 
-    private static JSONObject syntacticAnalysis(List<JSONToken<?>> tokens) throws ParseException {
-        return syntacticAnalysis(tokens, 0);
-    }
-
-    private static JSONObject syntacticAnalysis(List<JSONToken<?>> tokens, int startIndex) throws ParseException {
-        if (tokens.size() < 1)
-            throw new ParseException("Not enough tokens to process", startIndex);
-        JSONToken<?> t = tokens.get(startIndex);
+    private static JSONObject syntacticAnalysis() throws ParseException {
+        JSONToken<?> t = tokens.peek();
+        if (t == null)
+            throw new ParseException("Not enough tokens to process", 0);
         switch (t.getType()) {
             case LeftBrace:
-                return parseObject(tokens.subList(startIndex, tokens.size()), startIndex + 1);
+                tokens.poll();
+                return parseObject();
             case LeftBracket:
-                return parseArray(tokens, 1);
+                return parseArray();
             default:
                 throw new UnsupportedOperationException("Base value");
 
         }
     }
 
-    private static JSONObject parseArray(List<JSONToken<?>> tokens, int startIndex) {
+    private static JSONObject parseArray() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
-    private static JSONObject parseObject(List<JSONToken<?>> tokens, int startIndex) throws ParseException {
+    private static JSONObject parseObject() throws ParseException {
         JSONObject obj = new JSONObject();
-        JSONToken<?> t = tokens.get(startIndex);
+        JSONToken<?> t = tokens.peek();
         if (t.getType() == JSONTokenType.RightBrace) {
             return obj;
         }
-        while (startIndex < tokens.size()) {
+
+        while (!tokens.isEmpty()) {
             // Expect Key
-            t = tokens.get(startIndex);
+            t = tokens.poll();
             if (t.getType() != JSONTokenType.String) {
-                throw new ParseException(String.format("Expected string key, got %s", t), startIndex);
+                throw new ParseException(String.format("Expected string key, got %s", t), maxNumTokens - tokens.size());
             }
-            startIndex++;
+            // obj.addToken();
             String jsonKey = (String) t.getValue();
             Object value = new JSONObject();
-            t = tokens.get(startIndex);
+            t = tokens.poll();
             // Expect Colon
             if (t.getType() != JSONTokenType.Colon) {
-                throw new ParseException(String.format("Expected Colon after key, got %s", t), startIndex);
+                throw new ParseException(String.format("Expected Colon after key, got %s", t),
+                        maxNumTokens - tokens.size());
             }
-            startIndex++;
-            t = tokens.get(startIndex);
+            // obj.addToken();
+            t = tokens.poll();
             // Expect value (can be another object)
             try {
-                value = syntacticAnalysis(tokens, startIndex);
+                value = syntacticAnalysis();
+                // tokensToAdd = ((JSONObject) value).getTokens();
+                // obj.addTokens(tokensToAdd);
             } catch (UnsupportedOperationException e) {
                 value = t.getValue();
+                // obj.addToken();
             }
-            obj.addItem(jsonKey, value);
-            startIndex++;
-            t = tokens.get(startIndex);
+            obj.addItem(jsonKey, value); // Need to be able to add number of tokens consumed by nested objects.
+            t = tokens.poll();
+
+            // obj.addToken();
             // Expect closing bracket
             if (t.getType() == JSONTokenType.RightBrace) {
                 return obj;
@@ -183,11 +188,12 @@ public class Parser {
 
             // Otherwise Expect comma
             if (t.getType() != JSONTokenType.Seperator) {
-                throw new ParseException(String.format("Expected Comma after pair, got %s", t), startIndex);
+                throw new ParseException(String.format("Expected Comma after pair, got %s", t),
+                        maxNumTokens - tokens.size());
             }
-            startIndex++;
         }
         throw new ParseException(
-                String.format("Expected end of object bracket, got %s", tokens.get(startIndex).getValue()), startIndex);
+                String.format("Expected end of object bracket, got %s", tokens.poll().getValue()),
+                maxNumTokens - tokens.size());
     }
 }

@@ -12,6 +12,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 
 class ParserTest {
     final ByteArrayOutputStream baosStdOut = new ByteArrayOutputStream();
@@ -21,6 +23,8 @@ class ParserTest {
     @BeforeEach
     void setUp() {
         System.setSecurityManager(new NoExitSecurityManager());
+        System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
+        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err)));
     }
 
     public void captureStdOut() {
@@ -193,6 +197,30 @@ class ParserTest {
             try {
                 String data = baosStdErr.toString(utf8);
                 assertEquals("Unable to tokenize char 'F' at position 28", data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserParsesValidNestedObject() {
+        captureStdOut();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/step4/validNested.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baosStdOut.toString(utf8);
+                JSONObject expected = new JSONObject();
+                JSONObject nested = new JSONObject();
+                nested.addItem("key2", "value");
+                nested.addItem("key3", "value2");
+                expected.addItem("key", nested);
+                expected.addItem("key4", "value3");
+                assertEquals(expected.toString(), data.trim());
             } catch (UnsupportedEncodingException ex) {
                 ex.printStackTrace();
             }
