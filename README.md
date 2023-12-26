@@ -4,6 +4,8 @@
 A very basic JSON parser.
 Written with inspiration from: https://codingchallenges.fyi/challenges/challenge-json-parser
 
+## Build status
+[![Java CI with Gradle](https://github.com/Kore-rep/json-parser/actions/workflows/gradle.yml/badge.svg)](https://github.com/Kore-rep/json-parser/actions/workflows/gradle.yml)
 
 ## Features
 Capable of parsing complex, nested objects and arrays, and whitespace combinations. 
