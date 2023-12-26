@@ -2,7 +2,9 @@ package json.parser;
 
 import java.util.HashMap;
 
-public class JSONObject {
+import json.parser.interfaces.JSONItem;
+
+public class JSONObject implements JSONItem {
     HashMap<String, Object> objects = new HashMap<>();
     // int tokens = 0;
 
@@ -15,15 +17,8 @@ public class JSONObject {
         objects.put(key, value);
     }
 
-    // public void addToken() {
-    // this.addTokens(1);
-    // }
-
-    // public void addTokens(int num) {
-    // this.tokens += num;
-    // }
-
-    // public int getTokens() {
-    // return tokens;
-    // }
+    @Deprecated
+    public void addItem(Object item) {
+        throw new UnsupportedOperationException("Use addItem(String key, Object value) instead.");
+    }
 }

@@ -6,6 +6,8 @@ package json.parser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;
@@ -49,9 +51,10 @@ class ParserTest {
     public void ParserParsesValidEmptyObject() {
         captureStdOut();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step1/valid.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/pass4.json"));
         } catch (IOException e) {
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("0", e.getMessage());
             try {
@@ -69,9 +72,10 @@ class ParserTest {
     public void ParserErrorsOnInvalidObject() {
         captureStdErr();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step1/invalid.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/fail34.json"));
         } catch (IOException e) {
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("1", e.getMessage());
             try {
@@ -87,10 +91,10 @@ class ParserTest {
     public void ParserParsesValidStringObject() {
         captureStdOut();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step2/valid.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/pass5.json"));
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("0", e.getMessage());
             try {
@@ -108,9 +112,10 @@ class ParserTest {
     public void ParserParsesValidStringObject2() {
         captureStdOut();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step2/valid2.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/pass6.json"));
         } catch (IOException e) {
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("0", e.getMessage());
             try {
@@ -129,9 +134,10 @@ class ParserTest {
     public void ParserErrorsOnInvalidStringObject() {
         captureStdErr();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step2/invalid.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/fail35.json"));
         } catch (IOException e) {
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("1", e.getMessage());
             try {
@@ -147,9 +153,10 @@ class ParserTest {
     public void ParserErrorsOnInvalidStringObject2() {
         captureStdErr();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step2/invalid2.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/fail36.json"));
         } catch (IOException e) {
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("1", e.getMessage());
             try {
@@ -165,9 +172,10 @@ class ParserTest {
     public void ParserParsesValidVariedObject() {
         captureStdOut();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step3/valid.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/pass7.json"));
         } catch (IOException e) {
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("0", e.getMessage());
             try {
@@ -186,12 +194,13 @@ class ParserTest {
     }
 
     @Test
-    public void ParserErrorsOnInvalidVariedObject2() {
+    public void ParserErrorsOnInvalidVariedObject() {
         captureStdErr();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step3/invalid.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/fail37.json"));
         } catch (IOException e) {
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("1", e.getMessage());
             try {
@@ -207,9 +216,10 @@ class ParserTest {
     public void ParserParsesValidNestedObject() {
         captureStdOut();
         try {
-            Parser.parse(Paths.get("./src/test/resources/step4/validNested.json"));
+            Parser.parse(Paths.get("./src/test/resources/objects/pass10.json"));
         } catch (IOException e) {
             e.printStackTrace();
+            assertTrue(false);
         } catch (RuntimeException e) {
             assertEquals("0", e.getMessage());
             try {
@@ -227,4 +237,170 @@ class ParserTest {
         }
     }
 
+    @Test
+    public void ParserParsesValidArrayObject() {
+        captureStdOut();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/objects/pass8.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+            assertTrue(false);
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baosStdOut.toString(utf8);
+                JSONObject expected = new JSONObject();
+                expected.addItem("key", "value");
+                expected.addItem("key-n", 101);
+                expected.addItem("key-o", new JSONObject());
+                expected.addItem("key-l", new JSONArray());
+                assertEquals(expected.toString(), data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserParsesValidArrayObject2() {
+        captureStdOut();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/objects/pass9.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+            assertTrue(false);
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baosStdOut.toString(utf8);
+                JSONObject expected = new JSONObject();
+                JSONObject nested = new JSONObject();
+                JSONArray arr = new JSONArray();
+                arr.addItem("list value");
+                arr.addItem(new JSONObject());
+                nested.addItem("inner key", "inner value");
+                expected.addItem("key", "value");
+                expected.addItem("key-n", 101);
+                expected.addItem("key-o", nested);
+                expected.addItem("key-l", arr);
+                assertEquals(expected.toString(), data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserErrorsOnInvalidArrayObject() {
+        captureStdErr();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/objects/fail38.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+            assertTrue(false);
+        } catch (RuntimeException e) {
+            assertEquals("1", e.getMessage());
+            try {
+                String data = baosStdErr.toString(utf8);
+                assertEquals("Unable to tokenize char ''' at position 97", data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserErrorsOnInvalidObjects() {
+        captureStdErr();
+        for (int i = 1; i < 34; i++) {
+            try {
+                String path = String.format("./src/test/resources/objects/fail%s.json", i);
+                Parser.parse(Paths.get(path));
+            } catch (IOException e) {
+                e.printStackTrace();
+                assertTrue(false);
+            } catch (RuntimeException e) {
+                String failMsg = String.format("Failed on file %s", i);
+                assertEquals("1", e.getMessage(), failMsg);
+            }
+        }
+    }
+
+    @Test
+    public void ParserParsesValidObject1() {
+        captureStdOut();
+        captureStdErr();
+        for (int i = 1; i < 4; i++) {
+
+        }
+        try {
+            Parser.parse(Paths.get("./src/test/resources/objects/pass1.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+            assertTrue(false);
+        } catch (RuntimeException e) {
+            try {
+                String errData = baosStdErr.toString(utf8);
+                assertEquals("0", e.getMessage());
+                String data = baosStdOut.toString(utf8);
+                // JSONObject expected = new JSONObject();
+                // JSONObject nested = new JSONObject();
+                // JSONArray arr = new JSONArray();
+                // arr.addItem("list value");
+                // arr.addItem(new JSONObject());
+                // nested.addItem("inner key", "inner value");
+                // expected.addItem("key", "value");
+                // expected.addItem("key-n", 101);
+                // expected.addItem("key-o", nested);
+                // expected.addItem("key-l", arr);
+                // assertEquals(expected.toString(), data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserParsesValidObject2() {
+        captureStdOut();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/objects/pass2.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+            assertTrue(false);
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baosStdOut.toString(utf8);
+
+                String expected = "[[[[[[[[[[[[[[[[[[[Not too deep]]]]]]]]]]]]]]]]]]]";
+                assertEquals(expected, data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Test
+    public void ParserParsesValidObject3() {
+        captureStdOut();
+        try {
+            Parser.parse(Paths.get("./src/test/resources/objects/pass3.json"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            assertEquals("0", e.getMessage());
+            try {
+                String data = baosStdOut.toString(utf8);
+                JSONObject expected = new JSONObject();
+                JSONObject nested = new JSONObject();
+                nested.addItem("The outermost value", "must be an object or array.");
+                nested.addItem("In this test", "It is an object.");
+                expected.addItem("JSON Test Pattern pass3", nested);
+                assertEquals(expected.toString(), data.trim());
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
 }

@@ -3,6 +3,7 @@ package json.parser;
 public class JSONToken<T> {
     private T value;
     private JSONTokenType type;
+    private int length;
 
     public JSONToken(T value) {
         this.value = value;
@@ -14,12 +15,22 @@ public class JSONToken<T> {
         this.type = type;
     }
 
+    public JSONToken(T value, JSONTokenType type, int length) {
+        this.value = value;
+        this.type = type;
+        this.length = length;
+    }
+
     public JSONTokenType getType() {
         return this.type;
     }
 
     public T getValue() {
         return this.value;
+    }
+
+    public int getStringLength() {
+        return this.length;
     }
 
     private void inferType() {
@@ -35,7 +46,17 @@ public class JSONToken<T> {
                 break;
             case ":":
                 type = JSONTokenType.Colon;
+                break;
+            case "[":
+                type = JSONTokenType.LeftBracket;
+                break;
+            case "]":
+                type = JSONTokenType.RightBracket;
+                break;
+            default:
+                throw new UnsupportedOperationException("Unable to infer type, specify in constructor.");
         }
+        length = 1;
     }
 
     @Override

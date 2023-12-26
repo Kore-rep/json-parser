@@ -4,6 +4,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.IOException;
 import java.util.*;
+
+import json.parser.interfaces.JSONItem;
+
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.lang.UnsupportedOperationException;
@@ -15,10 +18,13 @@ public class Parser {
     public static void parse(String object) {
         try {
             lexicalAnalysis(object.trim());
-            JSONObject obj = syntacticAnalysis();
+            JSONItem obj = syntacticAnalysis();
             System.out.println(obj.toString());
             System.exit(0);
         } catch (ParseException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        } catch (UnsupportedOperationException e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }
@@ -33,14 +39,17 @@ public class Parser {
         while (i < object.length()) {
             String currString = object.substring(i, object.length());
             char c = object.charAt(i);
-            if (Constants.JSON_SYNTAX.contains(c)) {
-                tokens.add(new JSONToken<String>(String.valueOf(c)));
-                i++;
+
+            int whitespaceCount = consumeWhitespace(currString);
+            if (whitespaceCount > 0) {
+                i += whitespaceCount;
                 continue;
             }
-            if (Constants.JSON_WHITESPACE.contains(c)) {
-                // Ignore whitespace
-                i++;
+
+            JSONToken<String> syntaxToken = lexJsonSyntax(currString);
+            if (syntaxToken != null) {
+                tokens.add(syntaxToken);
+                i += syntaxToken.getStringLength();
                 continue;
             }
 
@@ -61,7 +70,7 @@ public class Parser {
             JSONToken<Number> numberToken = lexNumber(currString);
             if (numberToken != null) {
                 tokens.add(numberToken);
-                i += numberToken.getValue().toString().length();
+                i += numberToken.getStringLength();
                 continue;
             }
 
@@ -75,26 +84,48 @@ public class Parser {
         maxNumTokens = tokens.size();
     }
 
+    /*
+     * Consume whitespace until a non-whitespace char is found.
+     */
+    private static int consumeWhitespace(String object) {
+        int counter = 0;
+        while (Constants.JSON_WHITESPACE.contains(object.charAt(counter))) {
+            counter++;
+        }
+        return counter;
+    }
+
+    private static JSONToken<String> lexJsonSyntax(String object) {
+        char c = object.charAt(0);
+        if (Constants.JSON_SYNTAX.contains(c)) {
+            return new JSONToken<String>(String.valueOf(c));
+        }
+        return null;
+    }
+
     // Expect first character to be first " of string to be lexed
     private static JSONToken<String> lexString(String object) throws ParseException {
         if (object.charAt(0) != '"')
             return null;
         StringBuilder sb = new StringBuilder();
+        char prev = ' ';
         for (int i = 1; i < object.length(); i++) {
             char c = object.charAt(i);
-            if (c == '"')
+            if (c == '"' && prev != Constants.JSON_ESCPAE_CHARACTER)
                 return new JSONToken<String>(sb.toString(), JSONTokenType.String);
             sb.append(c);
+            prev = c;
         }
         throw new ParseException("Expected end of string quote", 0);
     }
 
     private static JSONToken<Boolean> lexBool(String object) throws ParseException {
+        if (object.length() < 5)
+            return null;
         StringBuilder sb = new StringBuilder();
         sb.append(object.substring(0, 4));
         if (sb.toString().equals("true"))
             return new JSONToken<Boolean>(true, JSONTokenType.Boolean);
-        // False
         sb.append(object.charAt(4));
         if (sb.toString().equals("false"))
             return new JSONToken<Boolean>(false, JSONTokenType.Boolean);
@@ -107,8 +138,8 @@ public class Parser {
             char c = object.charAt(i);
             if (!Constants.JSON_NUMBER_CHARS.contains(c))
                 try {
-                    res = NumberFormat.getInstance().parse(object.substring(0, i));
-                    return new JSONToken<Number>(res, JSONTokenType.Number);
+                    res = NumberFormat.getInstance(Locale.US).parse(object.substring(0, i));
+                    return new JSONToken<Number>(res, JSONTokenType.Number, i);
                 } catch (ParseException e) {
                     break;
                 }
@@ -124,30 +155,72 @@ public class Parser {
         return false;
     }
 
-    private static JSONObject syntacticAnalysis() throws ParseException {
+    private static JSONItem syntacticAnalysis() throws ParseException {
         JSONToken<?> t = tokens.peek();
         if (t == null)
             throw new ParseException("Not enough tokens to process", 0);
         switch (t.getType()) {
             case LeftBrace:
-                tokens.poll();
                 return parseObject();
             case LeftBracket:
                 return parseArray();
             default:
-                throw new UnsupportedOperationException("Base value");
-
+                throw new UnsupportedOperationException("Not a JSON object or Array");
         }
     }
 
-    private static JSONObject parseArray() {
-        throw new UnsupportedOperationException("Not implemented");
+    private static JSONArray parseArray() throws ParseException {
+        JSONArray obj = new JSONArray();
+        JSONToken<?> t = tokens.poll();
+        if (t.getType() != JSONTokenType.LeftBracket) {
+            throw new ParseException(String.format("Expected array bracket, got %s", t),
+                    maxNumTokens - tokens.size());
+        }
+
+        t = tokens.peek();
+        if (t.getType() == JSONTokenType.RightBracket) {
+            tokens.poll();
+            return obj;
+        }
+
+        while (!tokens.isEmpty()) {
+            // Expect value (can be another object)
+            Object value = new JSONObject(); // either JSON value or JSON literal
+            try {
+                value = syntacticAnalysis();
+            } catch (UnsupportedOperationException e) {
+                t = tokens.poll();
+                value = t.getValue();
+            }
+            obj.addItem(value);
+            t = tokens.poll();
+
+            // Expect closing bracket
+            if (t.getType() == JSONTokenType.RightBracket) {
+                return obj;
+            }
+
+            // Otherwise Expect comma
+            if (t.getType() != JSONTokenType.Seperator) {
+                throw new ParseException(String.format("Expected Comma after pair, got %s", t),
+                        maxNumTokens - tokens.size());
+            }
+        }
+        throw new ParseException(
+                String.format("Expected end of array bracket, got %s", tokens.poll().getValue()),
+                maxNumTokens - tokens.size());
     }
 
     private static JSONObject parseObject() throws ParseException {
         JSONObject obj = new JSONObject();
-        JSONToken<?> t = tokens.peek();
+        JSONToken<?> t = tokens.poll();
+        if (t.getType() != JSONTokenType.LeftBrace) {
+            throw new ParseException(String.format("Expected object brace, got %s", t),
+                    maxNumTokens - tokens.size());
+        }
+        t = tokens.peek();
         if (t.getType() == JSONTokenType.RightBrace) {
+            tokens.poll();
             return obj;
         }
 
@@ -187,7 +260,7 @@ public class Parser {
             }
         }
         throw new ParseException(
-                String.format("Expected end of object bracket, got %s", tokens.poll().getValue()),
+                String.format("Expected end of object brace, got %s", tokens.poll().getValue()),
                 maxNumTokens - tokens.size());
     }
 }
