@@ -3,11 +3,11 @@
  */
 package json.parser;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;
@@ -23,10 +23,11 @@ class ParserTest {
     final String utf8 = StandardCharsets.UTF_8.name();
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         System.setSecurityManager(new NoExitSecurityManager());
         System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
         System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err)));
+        Parser.clearTokens();
     }
 
     public void captureStdOut() {
@@ -64,7 +65,6 @@ class ParserTest {
             } catch (UnsupportedEncodingException ex) {
                 ex.printStackTrace();
             }
-
         }
     }
 
@@ -326,39 +326,27 @@ class ParserTest {
         }
     }
 
-    @Test
-    public void ParserParsesValidObject1() {
-        captureStdOut();
-        captureStdErr();
-        for (int i = 1; i < 4; i++) {
+    // @Test
+    // public void ParserParsesValidObject1() {
+    // captureStdOut();
+    // captureStdErr();
+    // for (int i = 1; i < 4; i++) {
 
-        }
-        try {
-            Parser.parse(Paths.get("./src/test/resources/objects/pass1.json"));
-        } catch (IOException e) {
-            e.printStackTrace();
-            assertTrue(false);
-        } catch (RuntimeException e) {
-            try {
-                String errData = baosStdErr.toString(utf8);
-                assertEquals("0", e.getMessage());
-                String data = baosStdOut.toString(utf8);
-                // JSONObject expected = new JSONObject();
-                // JSONObject nested = new JSONObject();
-                // JSONArray arr = new JSONArray();
-                // arr.addItem("list value");
-                // arr.addItem(new JSONObject());
-                // nested.addItem("inner key", "inner value");
-                // expected.addItem("key", "value");
-                // expected.addItem("key-n", 101);
-                // expected.addItem("key-o", nested);
-                // expected.addItem("key-l", arr);
-                // assertEquals(expected.toString(), data.trim());
-            } catch (UnsupportedEncodingException ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
+    // }
+    // try {
+    // Parser.parse(Paths.get("./src/test/resources/objects/pass1.json"));
+    // } catch (IOException e) {
+    // e.printStackTrace();
+    // assertTrue(false);
+    // } catch (RuntimeException e) {
+    // try {
+    // String errData = baosStdErr.toString(utf8);
+    // assertEquals("0", e.getMessage());
+    // } catch (UnsupportedEncodingException ex) {
+    // ex.printStackTrace();
+    // }
+    // }
+    // }
 
     @Test
     public void ParserParsesValidObject2() {

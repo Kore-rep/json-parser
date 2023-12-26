@@ -14,7 +14,7 @@ public class JSONArray implements JSONItem {
 
     @Deprecated
     public void addItem(String key, Object value) {
-        throw new UnsupportedOperationException("Use addItem(bject item) instead.");
+        throw new UnsupportedOperationException("Use addItem(Object item) instead.");
     }
 
     @Override

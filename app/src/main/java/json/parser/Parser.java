@@ -21,10 +21,7 @@ public class Parser {
             JSONItem obj = syntacticAnalysis();
             System.out.println(obj.toString());
             System.exit(0);
-        } catch (ParseException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-        } catch (UnsupportedOperationException e) {
+        } catch (UnsupportedOperationException | ParseException e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }
@@ -103,7 +100,6 @@ public class Parser {
         return null;
     }
 
-    // Expect first character to be first " of string to be lexed
     private static JSONToken<String> lexString(String object) throws ParseException {
         if (object.charAt(0) != '"')
             return null;
@@ -148,6 +144,8 @@ public class Parser {
     }
 
     private static boolean lexNull(String object) {
+        if (object.length() < 5)
+            return false;
         StringBuilder sb = new StringBuilder();
         sb.append(object.substring(0, 4));
         if (sb.toString().toLowerCase().equals("null"))
@@ -184,8 +182,8 @@ public class Parser {
         }
 
         while (!tokens.isEmpty()) {
-            // Expect value (can be another object)
-            Object value = new JSONObject(); // either JSON value or JSON literal
+            // Expect value (can be another object or array).
+            Object value = new JSONObject();
             try {
                 value = syntacticAnalysis();
             } catch (UnsupportedOperationException e) {
@@ -262,5 +260,10 @@ public class Parser {
         throw new ParseException(
                 String.format("Expected end of object brace, got %s", tokens.poll().getValue()),
                 maxNumTokens - tokens.size());
+    }
+
+    public static void clearTokens() {
+        tokens.clear();
+        maxNumTokens = 0;
     }
 }

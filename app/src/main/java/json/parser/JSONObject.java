@@ -6,7 +6,6 @@ import json.parser.interfaces.JSONItem;
 
 public class JSONObject implements JSONItem {
     HashMap<String, Object> objects = new HashMap<>();
-    // int tokens = 0;
 
     @Override
     public String toString() {
